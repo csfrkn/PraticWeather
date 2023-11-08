@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/todayFragment">
+
+    <fragment
+        android:id="@+id/todayFragment"
+        tools:layout="@layout/fragment_today"
+        android:name="com.fg.praticweather.presentation.fragments.TodayFragment"
+        android:label="TodayFragment" >
+        <action
+            android:id="@+id/toTomorrow"
+            app:destination="@id/tomorrowFragment"
+            app:enterAnim="@anim/from_right"
+            app:exitAnim="@anim/to_left"
+            app:popEnterAnim="@anim/from_left"
+            app:popExitAnim="@anim/to_right" />
+    </fragment>
+    <fragment
+        tools:layout="@layout/fragment_tomorrow"
+        android:id="@+id/tomorrowFragment"
+        android:name="com.fg.praticweather.presentation.fragments.TomorrowFragment"
+        android:label="TomorrowFragment" >
+        <argument android:name="city" />
+    </fragment>
+</navigation>
