@@ -1,6 +1,7 @@
 package com.fg.praticweather.data
 
 data class WeatherModel(
+
     val city: City,
     val cnt: Int,
     val cod: String,
@@ -18,4 +19,7 @@ data class WeatherModel(
     val timezone: Int,
     val weather: List<Weather>,
     val wind: Wind
-)
+){
+
+
+}

@@ -1,19 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/todayLayout"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/weather_bg">
 
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <ScrollView
+        android:id="@+id/todayScroll"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
 
             <EditText
                 android:id="@+id/edSearch"
@@ -25,9 +41,9 @@
                 android:background="@drawable/search_bg"
                 android:drawableStart="@drawable/ic_action_search"
                 android:drawablePadding="8dp"
-                android:imeOptions="actionSearch"
                 android:ems="10"
                 android:hint="Search a City.."
+                android:imeOptions="actionSearch"
                 android:inputType="text"
                 android:padding="12dp"
                 android:textColorHint="@color/white"
@@ -59,7 +75,6 @@
                 android:textStyle="bold" />
 
 
-
             <TextView
                 android:id="@+id/tv_date"
                 android:layout_width="match_parent"
@@ -80,19 +95,19 @@
                     android:id="@+id/imgView"
                     android:layout_width="150dp"
                     android:layout_height="150dp"
-                    app:lottie_loop="true"
                     android:layout_gravity="center"
-                    app:lottie_autoPlay="true"
                     android:layout_margin="16dp"
+                    app:lottie_autoPlay="true"
+                    app:lottie_loop="true"
                     app:lottie_rawRes="@raw/scatter" />
 
                 <TextView
                     android:id="@+id/tv_cloudly"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_gravity="center"
                     android:text="Mostly Cloudy"
                     android:textAlignment="center"
-                    android:layout_gravity="center"
                     android:textColor="@color/white"
                     android:textSize="20sp" />
 
@@ -100,9 +115,9 @@
                     android:id="@+id/tv_degree"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_gravity="center"
                     android:layout_marginTop="4dp"
                     android:text="25°"
-                    android:layout_gravity="center"
                     android:textAlignment="center"
                     android:textColor="@color/white"
                     android:textSize="43sp" />

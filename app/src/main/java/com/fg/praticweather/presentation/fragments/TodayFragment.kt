@@ -1,13 +1,17 @@
 package com.fg.praticweather.presentation.fragments
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Context.INPUT_METHOD_SERVICE
 import android.content.Context.LOCATION_SERVICE
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -15,15 +19,14 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.toDrawable
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.navigation.Navigation
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.fg.praticweather.R
 import com.fg.praticweather.data.WeatherList
@@ -31,6 +34,7 @@ import com.fg.praticweather.data.WeatherModel
 import com.fg.praticweather.databinding.FragmentTodayBinding
 import com.fg.praticweather.presentation.activities.MainActivity
 import com.fg.praticweather.presentation.adapter.HourlyWeatherAdapter
+import com.fg.praticweather.presentation.viewmodels.TodayViewModel
 import com.fg.praticweather.retrofit.ApiUtils
 import com.fg.praticweather.util.capitalizeWords
 import com.fg.praticweather.util.dateFormatter
@@ -46,18 +50,32 @@ class TodayFragment : Fragment() {
 
     private lateinit var binding: FragmentTodayBinding
     private lateinit var hourlyWeatherAdapter: HourlyWeatherAdapter
-    private val apiKey = "f9b7ef54fc706efc8c27189d32e1ab44"
     var hourlyItemsLiveData = MutableLiveData<List<WeatherList>>()
     private var activity = MainActivity()
     private lateinit var locationManager: LocationManager
     private lateinit var locationListener: LocationListener
-    private lateinit var permissionLauncher: ActivityResultLauncher<String>
     private lateinit var city4: String
     var ts by Delegates.notNull<Int>()
+    val todayViewModel by viewModels<TodayViewModel>()
+
+
+    var permissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                return@registerForActivityResult
+            } else {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    showAlert()
+                } else {
+                    showAlert()
+                }
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         hourlyWeatherAdapter = HourlyWeatherAdapter()
+        checkAndRequestLocationPermission()
     }
 
     override fun onCreateView(
@@ -71,25 +89,17 @@ class TodayFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        location()
         setupHourlyItemsRv()
         observeHourlyWeather()
-        registerLaunch()
-
-        binding.nextDays.setOnClickListener {
-
-            val qq = TodayFragmentDirections.toTomorrow(city = city4)
-            Navigation.findNavController(it).navigate(qq)
-
-        }
-
+        location()
+        observeLivedata()
 
         binding.edSearch.setOnEditorActionListener { _, actionId, _ ->
-            var city3 = binding.edSearch.text.toString().trim()
+            val city3 = binding.edSearch.text.toString().trim()
             city4 = city3
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                getCityWeather(city3)
-                val view = activity?.currentFocus
+                todayViewModel.getCityWeather(city4, requireContext())
+                val view = activity.currentFocus
                 if (view != null) {
                     val im: InputMethodManager =
                         requireContext().getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
@@ -104,19 +114,51 @@ class TodayFragment : Fragment() {
         }
 
 
+        binding.nextDays.setOnClickListener {
+
+            val qq =
+                TodayFragmentDirections.toTomorrow(city = city4)
+            findNavController().navigate(qq)
+        }
+
+
+    }
+
+    private fun observeLivedata() {
+        todayViewModel.weather.observe(viewLifecycleOwner) {
+            if (it.list.isNotEmpty()) {
+                Log.e("tag", it.list[0].dt_txt)
+                binding.progressBar.visibility = View.GONE
+                binding.todayScroll.visibility = View.VISIBLE
+                hourlyItemsLiveData.value = it.list
+                setData(it!!)
+
+            }
+        }
+        todayViewModel.currentWeather.observe(viewLifecycleOwner) {
+            city4 = it
+        }
     }
 
 
     private fun location() {
-
         locationManager = requireContext().getSystemService(LOCATION_SERVICE) as LocationManager
 
         locationListener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
-                getCurrentWeather(location.longitude.toString(), location.latitude.toString())
+                todayViewModel.getCurrentWeather(
+                    location.longitude.toString(),
+                    location.latitude.toString(),
+                    requireContext()
+                )
+            }
+            override fun onProviderDisabled(provider: String) {
+                Snackbar.make(binding.root, "error", Snackbar.LENGTH_INDEFINITE)
+                    .setAction("Permission must be given") {
+                        permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }.show()
             }
         }
-
         if (ActivityCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -125,22 +167,7 @@ class TodayFragment : Fragment() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    requireActivity(),
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                )
-            ) {
-                Snackbar.make(
-                    binding.root,
-                    "Permission needed for location",
-                    Snackbar.LENGTH_INDEFINITE
-                ).setAction("Give Permission") {
-                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                }.show()
-            } else {
-                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            }
-            return
+            showAlert()
         }
         locationManager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER,
@@ -148,73 +175,39 @@ class TodayFragment : Fragment() {
             2000f,
             locationListener
         )
-
     }
 
-    private fun registerLaunch() {
-        permissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                if (it) {
-                    if (ActivityCompat.checkSelfPermission(
-                            activity,
-                            Manifest.permission.ACCESS_FINE_LOCATION
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        locationManager.requestLocationUpdates(
-                            LocationManager.GPS_PROVIDER,
-                            1800000,
-                            2000f,
-                            locationListener
-                        )
-                    }
+    private fun showAlert() {
+        AlertDialog.Builder(requireContext()).setTitle("location")
+            .setMessage("we need").setPositiveButton("okkk") { _, _ ->
+                if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                 } else {
-                    Toast.makeText(activity, "Permission Needs", Toast.LENGTH_LONG).show()
+                    openAppSettings()
                 }
-            }
+            }.setNegativeButton("Exit App") { _, _ ->
+                onDestroyView()
+            }.show()
     }
 
-
-    private fun getCityWeather(city: String) {
-        ApiUtils.getWeatherDao()?.getForecastData(apiKey, city)?.enqueue(
-            object : Callback<WeatherModel> {
-                override fun onResponse(
-                    call: Call<WeatherModel>,
-                    response: Response<WeatherModel>
-                ) {
-                    if (response.isSuccessful && response.body() != null) {
-                        response.body().let {
-                            setData(it!!)
-                            hourlyItemsLiveData.value = response.body()!!.list
-                        }
-                    }
-                }
-                override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
-                    Toast.makeText(requireContext(), "ww", Toast.LENGTH_SHORT).show()
-                }
-            })
+    private fun openAppSettings() {
+        Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", requireActivity().packageName, null)
+        ).also(::startActivity)
     }
 
-    private fun getCurrentWeather(lon: String, lat: String) {
-        ApiUtils.getWeatherDao()?.getCurrentData(lon, lat, apiKey)?.enqueue(
-            object : Callback<WeatherModel> {
-                override fun onResponse(
-                    call: Call<WeatherModel>,
-                    response: Response<WeatherModel>
-                ) {
-                    if (response.isSuccessful && response.body() != null) {
-                        response.body().let {
-                            var city = response.body()!!.name
-                            getCityWeather(city)
-                            city4 = city
-                        }
-                    }
-                }
-                override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
-                    Toast.makeText(requireContext(), "ww", Toast.LENGTH_SHORT).show()
-                }
-            })
+    private fun checkAndRequestLocationPermission() {
+        if (ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            location()
+        } else {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
     }
-
 
     fun setData(body: WeatherModel) {
         binding.apply {
@@ -244,7 +237,6 @@ class TodayFragment : Fragment() {
     }
 
     fun updateUI(id: Int) {
-        Log.e("tag", "$ts")
         binding.apply {
 
             when {
@@ -409,6 +401,7 @@ class TodayFragment : Fragment() {
                     imgView.setAnimation(R.raw.scatter)
 
                 }
+
                 else -> {}
             }
         }

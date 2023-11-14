@@ -2,6 +2,8 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("androidx.navigation.safeargs.kotlin")
+    id("kotlin-parcelize")
+
 }
 
 android {
@@ -66,5 +68,11 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-extensions:2.2.0")
 
     implementation("com.airbnb.android:lottie:6.1.0")
+
+    implementation("androidx.core:core-splashscreen:1.0.0-beta02")
+
+    implementation("androidx.activity:activity-ktx:1.3.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.5.1")
+
 
 }

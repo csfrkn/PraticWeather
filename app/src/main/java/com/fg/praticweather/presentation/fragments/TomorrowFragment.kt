@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.navigation.fragment.findNavController
@@ -17,6 +18,7 @@ import com.fg.praticweather.data.WeatherList
 import com.fg.praticweather.data.WeatherModel
 import com.fg.praticweather.databinding.FragmentTomorrowBinding
 import com.fg.praticweather.presentation.adapter.ForecastAdapter
+import com.fg.praticweather.presentation.viewmodels.TodayViewModel
 import com.fg.praticweather.retrofit.ApiUtils
 import com.fg.praticweather.util.capitalizeWords
 import com.fg.praticweather.util.kelvinToCelcius
@@ -33,6 +35,12 @@ class TomorrowFragment : Fragment() {
     private var foreItemsLiveData = MutableLiveData<List<WeatherList>>()
     val apiKey = "f9b7ef54fc706efc8c27189d32e1ab44"
     var ts by Delegates.notNull<Int>()
+    private val args  by navArgs<TomorrowFragmentArgs>()
+    private val todayViewModel by viewModels<TodayViewModel>()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -46,43 +54,36 @@ class TomorrowFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         forecastAdapter = ForecastAdapter()
+        observeLivedata()
         setupHourlyItemsRv()
         observeHourlyWeather()
 
-        val bundle: TomorrowFragmentArgs by navArgs()
-        var city = bundle.city
-        getCityWeather(city)
+
+        var city = args.city
+
+       todayViewModel.getCityWeather(city, requireContext())
 
         binding.backBtn.setOnClickListener {
-            findNavController().navigateUp()
+            findNavController().popBackStack()
         }
     }
 
-    private fun getCityWeather(city: String) {
-        ApiUtils.getWeatherDao()?.getForecastData(apiKey, city)?.enqueue(
-            object : Callback<WeatherModel> {
-                override fun onResponse(
-                    call: Call<WeatherModel>,
-                    response: Response<WeatherModel>
-                ) {
-                    if (response.isSuccessful && response.body() != null) {
-                        response.body().let {
-                            setData(it!!)
-                            foreItemsLiveData.value = arrayListOf(
-                                response.body()!!.list[16],
-                                response.body()!!.list[24],
-                                response.body()!!.list[32],
-                                response.body()!!.list[39]
-                            )
-                        }
-                    }
-                }
-                override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
-                    Toast.makeText(requireContext(), "ww", Toast.LENGTH_SHORT).show()
-                }
-            })
+    private fun observeLivedata() {
+        todayViewModel.weather.observe(viewLifecycleOwner) {
+            if (it.list.isNotEmpty()) {
+                Log.e("tomorrow", it.list[0].dt_txt)
+                binding.progressBar.visibility = View.GONE
+                binding.scroll.visibility = View.VISIBLE
+                setData(it!!)
+                foreItemsLiveData.value = arrayListOf(
+                    it.list[16],
+                    it.list[24],
+                    it.list[32],
+                    it.list[39]
+                )
+            }
+        }
     }
-
     private fun setData(body: WeatherModel) {
         binding.apply {
 
@@ -100,7 +101,6 @@ class TomorrowFragment : Fragment() {
     }
 
     fun updateUI(id: Int) {
-        Log.e("tag", "$ts")
         binding.apply {
 
             when {
@@ -265,6 +265,7 @@ class TomorrowFragment : Fragment() {
                     imgView.setAnimation(R.raw.scatter)
 
                 }
+
                 else -> {}
             }
         }
