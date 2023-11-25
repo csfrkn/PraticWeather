@@ -1,5 +1,9 @@
 package com.fg.praticweather.data
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
 data class Main(
     val feels_like: Double,
     val grnd_level: Int,
@@ -10,4 +14,6 @@ data class Main(
     val temp_kf: Double,
     val temp_max: Double,
     val temp_min: Double
-)
+): Parcelable{
+    constructor():this(0.0,0,0,0,0,0.0,0.0,0.0,0.0)
+}

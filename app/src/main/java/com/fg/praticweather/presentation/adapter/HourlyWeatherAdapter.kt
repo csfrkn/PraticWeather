@@ -48,4 +48,7 @@ class HourlyWeatherAdapter() : RecyclerView.Adapter<HourlyWeatherAdapter.HourlyV
     override fun getItemCount(): Int {
         return weathersList.size
     }
+
+    var onClick: ((WeatherList) -> Unit)? = null
+
 }

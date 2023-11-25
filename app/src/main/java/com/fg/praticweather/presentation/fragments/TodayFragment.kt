@@ -11,6 +11,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Parcel
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
@@ -18,7 +19,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -29,20 +29,18 @@ import androidx.lifecycle.MutableLiveData
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.fg.praticweather.R
+import com.fg.praticweather.data.City
 import com.fg.praticweather.data.WeatherList
 import com.fg.praticweather.data.WeatherModel
 import com.fg.praticweather.databinding.FragmentTodayBinding
 import com.fg.praticweather.presentation.activities.MainActivity
 import com.fg.praticweather.presentation.adapter.HourlyWeatherAdapter
 import com.fg.praticweather.presentation.viewmodels.TodayViewModel
-import com.fg.praticweather.retrofit.ApiUtils
 import com.fg.praticweather.util.capitalizeWords
 import com.fg.praticweather.util.dateFormatter
 import com.fg.praticweather.util.kelvinToCelcius
 import com.fg.praticweather.util.timepmFormatter
 import com.google.android.material.snackbar.Snackbar
-import retrofit2.Call
-import retrofit2.Callback
 import retrofit2.Response
 import kotlin.properties.Delegates
 
@@ -55,6 +53,7 @@ class TodayFragment : Fragment() {
     private lateinit var locationManager: LocationManager
     private lateinit var locationListener: LocationListener
     private lateinit var city4: String
+    private var weatherList = WeatherModel()
     var ts by Delegates.notNull<Int>()
     val todayViewModel by viewModels<TodayViewModel>()
 
@@ -114,25 +113,21 @@ class TodayFragment : Fragment() {
         }
 
 
-        binding.nextDays.setOnClickListener {
-
-            val qq =
-                TodayFragmentDirections.toTomorrow(city = city4)
-            findNavController().navigate(qq)
-        }
-
-
     }
 
     private fun observeLivedata() {
         todayViewModel.weather.observe(viewLifecycleOwner) {
             if (it.list.isNotEmpty()) {
-                Log.e("tag", it.list[0].dt_txt)
                 binding.progressBar.visibility = View.GONE
                 binding.todayScroll.visibility = View.VISIBLE
                 hourlyItemsLiveData.value = it.list
                 setData(it!!)
+                weatherList = it
+                binding.nextDays.setOnClickListener {
 
+                    val b = Bundle().apply { putParcelable("weatherList", weatherList) }
+                    findNavController().navigate(R.id.toTomorrow, b)
+                }
             }
         }
         todayViewModel.currentWeather.observe(viewLifecycleOwner) {
@@ -152,6 +147,7 @@ class TodayFragment : Fragment() {
                     requireContext()
                 )
             }
+
             override fun onProviderDisabled(provider: String) {
                 Snackbar.make(binding.root, "error", Snackbar.LENGTH_INDEFINITE)
                     .setAction("Permission must be given") {

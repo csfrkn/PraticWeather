@@ -33,14 +33,8 @@ class TomorrowFragment : Fragment() {
     private lateinit var binding: FragmentTomorrowBinding
     private lateinit var forecastAdapter: ForecastAdapter
     private var foreItemsLiveData = MutableLiveData<List<WeatherList>>()
-    val apiKey = "f9b7ef54fc706efc8c27189d32e1ab44"
     var ts by Delegates.notNull<Int>()
-    private val args  by navArgs<TomorrowFragmentArgs>()
-    private val todayViewModel by viewModels<TodayViewModel>()
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-    }
+    private val args by navArgs<TomorrowFragmentArgs>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -54,36 +48,29 @@ class TomorrowFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         forecastAdapter = ForecastAdapter()
-        observeLivedata()
         setupHourlyItemsRv()
         observeHourlyWeather()
 
 
-        var city = args.city
+        val weather = args.weatherList
+        binding.apply {
 
-       todayViewModel.getCityWeather(city, requireContext())
+            progressBar.visibility = View.GONE
+            scroll.visibility = View.VISIBLE
+            setData(weather)
+            foreItemsLiveData.value = arrayListOf(
+                weather.list[16],
+                weather.list[24],
+                weather.list[32],
+                weather.list[39]
+            )
+        }
 
         binding.backBtn.setOnClickListener {
             findNavController().popBackStack()
         }
     }
 
-    private fun observeLivedata() {
-        todayViewModel.weather.observe(viewLifecycleOwner) {
-            if (it.list.isNotEmpty()) {
-                Log.e("tomorrow", it.list[0].dt_txt)
-                binding.progressBar.visibility = View.GONE
-                binding.scroll.visibility = View.VISIBLE
-                setData(it!!)
-                foreItemsLiveData.value = arrayListOf(
-                    it.list[16],
-                    it.list[24],
-                    it.list[32],
-                    it.list[39]
-                )
-            }
-        }
-    }
     private fun setData(body: WeatherModel) {
         binding.apply {
 
@@ -97,7 +84,7 @@ class TomorrowFragment : Fragment() {
             ts = timepmFormatter(body.list[0].dt_txt).take(2).toInt()
 
         }
-        updateUI(body.list[0].weather[0].id)
+        updateUI(body.list[8].weather[0].id)
     }
 
     fun updateUI(id: Int) {

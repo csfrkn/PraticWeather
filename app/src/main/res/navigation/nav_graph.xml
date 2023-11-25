@@ -24,6 +24,8 @@
         android:id="@+id/tomorrowFragment"
         android:name="com.fg.praticweather.presentation.fragments.TomorrowFragment"
         android:label="TomorrowFragment" >
-        <argument android:name="city" />
+        <argument
+            android:name="weatherList"
+            app:argType="com.fg.praticweather.data.WeatherModel" />
     </fragment>
 </navigation>
